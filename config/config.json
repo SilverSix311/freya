@@ -1,0 +1,54 @@
+{
+    "roles": [
+        {
+            "react": ":aured:",
+            "react_id": 767783191121362994,
+            "role": "among-us",
+            "description": "Among Us",
+            "role_id": 768121663194923049
+        },
+        {
+            "react": ":factorio:",
+            "react_id": 1032835749957079121,
+            "role": "factorio",
+            "description": "Factorio",
+            "role_id": 768133875733626900
+        },
+        {
+            "react": ":hots:",
+            "react_id": 1032837498625331210,
+            "role": "hots",
+            "description": "Heroes of the Storm",
+            "role_id": 768133921086504970
+        },
+        {
+            "react": ":wow:",
+            "react_id": 1032837483064471642,
+            "role": "wow",
+            "description": "World of Warcraft",
+            "role_id": 768133973464842271
+        },
+        {
+            "react": ":d2:",
+            "react_id": 1032837512453963946,
+            "role": "diablo-ii",
+            "description": "Diablo II",
+            "role_id": 781978088682553355
+        },
+        {
+            "react": ":scrap:",
+            "react_id": 1032837468787052626,
+            "role": "scrapmechanic",
+            "description": "Scrap Mechanic",
+            "role_id": 768143610256162826
+        },
+        {
+            "react": ":val:",
+            "react_id": 1032837452601241671,
+            "role": "valheim",
+            "description": "Valheim",
+            "role_id": 1032821944699064362
+        }
+    ],
+    "role_message_id": 1032824537517150229
+}
