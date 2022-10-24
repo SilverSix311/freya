@@ -1,13 +1,12 @@
-import discord
-import os
-import sys
-import emoji
 import json
-import DiscordUtils
+import os
 import re
-from dotenv import load_dotenv
-from discord.ext import commands
+import sys
 
+import discord
+import emoji
+from discord.ext import commands
+from dotenv import load_dotenv
 
 BOT_NAME = "Freya"
 
