@@ -1,17 +1,24 @@
 import discord
 import os
+import sys
 import emoji
 import json
+import DiscordUtils
 from dotenv import load_dotenv
+from discord.ext import commands
+
 
 BOT_NAME = "Freya"
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
+BOT_CHANNEL_ID = os.getenv("BOT_CHANNEL_ID")
+TWITTER_CHANNEL_ID = os.getenv("TWITTER_CHANNEL_ID")
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 botActivity = discord.Game("with the API.")
 configFileLocation = os.path.join(
     os.path.dirname(__file__), "config/config.json")
@@ -19,6 +26,22 @@ configFileLocation = os.path.join(
 @client.event
 async def on_ready():
     print(f'{client.user} has logged in.')
+
+@client.event
+async def on_message(message):
+    ## If message.id == "BOT_CHANNEL_ID"
+    if message.channel.id == int(BOT_CHANNEL_ID):
+        if message.content == "!restart":
+            await message.channel.send("Restarting...")
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
+        if message.content == "!roles":
+            ## List roles of the author
+            author = message.author
+            roles = author.roles
+            roles = [role.name for role in roles]
+            roles = "\n".join(roles)
+            await message.channel.send(f"Your roles are:\n{roles}")
 
 def interpret_emoji(payload):
     """
