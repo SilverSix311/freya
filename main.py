@@ -1,8 +1,9 @@
+import asyncio
+import datetime
 import json
 import os
 import re
 import sys
-
 import discord
 import emoji
 from discord.ext import commands
@@ -17,141 +18,391 @@ BOT_CHANNEL_ID = os.getenv("BOT_CHANNEL_ID")
 TWITTER_CHANNEL_ID = os.getenv("TWITTER_CHANNEL_ID")
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+# client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix="!", intents=intents)
 botActivity = discord.Game("with the API.")
 configFileLocation = os.path.join(
     os.path.dirname(__file__), "config/config.json")
 
-@client.event
+@bot.event
 async def on_ready():
-    print(f'{client.user} has logged in.')
+    print(f'{bot.user} has logged in.')
 
-@client.event
-async def on_message(message):
-    global roleMessage
-    ## If message.id == "BOT_CHANNEL_ID"
-    if message.channel.id == int(BOT_CHANNEL_ID):
-    ## if message is from bot, return
-        if message.author == client.user:
+
+## create bot command !status to return the current time
+@bot.command(name="status", help="Returns the current time.")
+async def status(ctx):
+    now = datetime.datetime.now()
+    await ctx.send(now.strftime("%Y-%m-%d %H:%M:%S"))
+
+
+## create bot command !addnotif with arguments name, cron, channel_id, messageContents and append to notifications array in config/config.json
+@bot.command(name="addnotif", help="Add a notification to the Bot.")
+async def addnotif(ctx, name, cron, channel_id, messageContents):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## check if cron is in "HH:MM" format
+    if not re.match(r"([01]?[0-9]|2[0-3]):[0-5][0-9]", cron):
+        await ctx.send("Cron must be in HH:MM format.")
+        return
+    ## check if channel_id is a valid channel
+    if not bot.get_channel(int(channel_id)):
+        await ctx.send("Channel ID is invalid.")
+        return
+    ## check if messageContents is a valid string
+    if not isinstance(messageContents, str):
+        await ctx.send("Message contents must be a string.")
+        return
+    ## check if name is a valid string
+    if not isinstance(name, str):
+        await ctx.send("Name must be a string.")
+        return
+    ## check if name is already in use
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notifications = configData["notifications"]
+    for notification in notifications:
+        if notification["name"] == name:
+            await ctx.send("Name is already in use.")
             return
-        if message.content == "!restart":
-            await message.channel.send("Restarting...")
-            python = sys.executable
-            os.execl(python, python, *sys.argv)
-        if message.content == "!roles":
-            ## List roles of the author
-            author = message.author
-            roles = author.roles
-            roles = [role.name for role in roles]
-            roles = "\n".join(roles)
-            await message.channel.send(f"Your roles are:\n{roles}")
+    ## append to notifications array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notifications = configData["notifications"]
+    notifications.append({
+        "name": name,
+        "cron": cron,
+        "channel_id": channel_id,
+        "messageContents": messageContents
+    })
+    with open(configFileLocation, "w") as configFile:
+        json.dump(configData, configFile, indent=4)
+    await ctx.send("Notification added.")
+
+
+## create bot command !delnotif with arguments name and remove from notifications array in config/config.json
+@bot.command(name="delnotif", help="Delete a notification from the Bot.")
+async def delnotif(ctx, name):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## check if name is a valid string
+    if not isinstance(name, str):
+        await ctx.send("Name must be a string.")
+        return
+    ## check if name is not in use
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notifications = configData["notifications"]
+    for notification in notifications:
+        if notification["name"] == name:
+            break
+    else:
+        await ctx.send("Name is not in use.")
+        return
+    ## remove from notifications array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notifications = configData["notifications"]
+    for notification in notifications:
+        if notification["name"] == name:
+            notifications.remove(notification)
+            break
+    with open(configFileLocation, "w") as configFile:
+        json.dump(configData, configFile, indent=4)
+    await ctx.send("Notification removed.")
+
+
+## create bot command !listnotif to list all notifications in notifications array in config/config.json
+@bot.command(name="listnotif", help="List all notifications from the Bot.")
+async def listnotif(ctx):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## list all notifications in notifications array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notifications = configData["notifications"]
+    for notification in notifications:
+        await ctx.send(
+            f"Name: {notification['name']}, Cron: {notification['cron']}, Channel ID: {notification['channel_id']}, Message Contents: {notification['messageContents']}"
+        )
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## check if role_name is a valid string
+    if not isinstance(role_name, str):
+        await ctx.send("Role name must be a string.")
+        return
+    ## check if role_name is not in use
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    for role in roles:
+        if role["role_name"] == role_name:
+            break
+    else:
+        await ctx.send("Role name is not in use.")
+        return
+    ## remove from roles array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    for role in roles:
+        if role["role_name"] == role_name:
+            roles.remove(role)
+            break
+    with open(configFileLocation, "w") as configFile:
+        json.dump(configData, configFile, indent=4)
+    await ctx.send("Role removed.")
+    await role_system()
+
+
+## create bot command !listrole to list all roles in roles array in config/config.json
+@bot.command(name="listrole", help="List all roles from the Bot.")
+async def listrole(ctx):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## list all roles in roles array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    for role in roles:
+        await ctx.send(f"Role name: {role['role_name']}")
+    await ctx.send("Roles listed.")
+
+
+## create bot command !addrole with arguments role, react, description, and add to roles array in config/config.json
+@bot.command(name="addrole", help="Add a role to the Bot.")
+async def addrole(ctx, role_name, react, description):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## check if role_name is a valid string
+    if not isinstance(role_name, str):
+        await ctx.send("Role name must be a string.")
+        return
+    ## check if role_name is already in use
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    for role in roles:
+        if role["role_name"] == role_name:
+            await ctx.send("Role name is already in use.")
             return
-        ## if message.content contains "!addrole" then set new_role variable to the 2nd word in the message and set new_description variable to the 3rd word in the message and set new_react variable to the 4th word in the message
-        if "!addrole" in message.content:
-            if message.content.split()[1] == "help":
-                await message.channel.send("Usage: !addrole Test_Role Test_Description <:gimmetail:872298447393419294>")
-                return
-            ## if 4th word in message.content exists send message "Usage: !addrole Test_Role Test_Description <:gimmetail:872298447393419294>"
-            if len(message.content.split()) > 4:
-                await message.channel.send("You entered incorrect arguments. Usage: !addrole Test_Role Test_Description <:gimmetail:872298447393419294>")
-                return
-            new_role = message.content.split()[1]
-            new_description = message.content.split()[2]
-            new_react = message.content.split()[3]
-            new_react_emoji = re.sub(r'[0-9<>]', '', new_react)
-
-            roles = message.guild.roles
-            if new_role in roles:
-                await message.channel.send("Role already exists.")
-            else:
-                # Get the ID of the emoji from the server and set it to new_react_id
-                for custom_emoji in client.emojis:
-                    if custom_emoji.name in new_react:
-                        new_react_id = custom_emoji.id
-                        # Add the new role to the config file
-                        with open(configFileLocation, "r") as configFile:
-                            configData = json.load(configFile)
-                            configuredRoles = configData["roles"]
-                        configuredRoles.append(
-                            {
-                                "react": new_react_emoji,
-                                "react_id": new_react_id,
-                                "role": new_role,
-                                "description": new_description,
-                                "role_id": 0
-                            }
-                        )
-                configData["roles"] = configuredRoles
-                with open(configFileLocation, "w") as configFile:
-                    json.dump(configData, configFile, indent=4)
-                # Send a message to the channel to confirm the role has been added
-                await message.channel.send(f"Added role {new_role} to the config file.")
-                return
-                
-        ## Remove a role from the config file
-        if "!delrole" in message.content:
-            if message.author == client.user:
-                return
-            ## if 2nd word in message.content exists send message "Usage: !delrole Test_Role"
-            if len(message.content.split()) > 2:
-                await message.channel.send("You entered incorrect arguments. Usage: !delrole Test_Role")
-                return
-            role_to_remove = message.content.split()[1]
-            ## check if role_to_remove is in the config file
-            with open(configFileLocation, "r") as configFile:
-                configData = json.load(configFile)
-                configuredRoles = configData["roles"]
-            for role in configuredRoles:
-                if role_to_remove == role["role"]:
-                    configuredRoles.remove(role)
-                    configData["roles"] = configuredRoles
-                    with open(configFileLocation, "w") as configFile:
-                        json.dump(configData, configFile, indent=4)
-                    await message.channel.send(f"Removed role {role_to_remove} from the config file.")
-                    return
+    ## check if react is a valid string
+    if not isinstance(react, str):
+        await ctx.send("React must be a string.")
+        return
+    ## check if description is a valid string
+    if not isinstance(description, str):
+        await ctx.send("Description must be a string.")
+        return
+    ## append to roles array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    roles.append({
+        "react": react,
+        "react_id": 0,
+        "role": role_name,
+        "description": description,
+        "role_id": 0
+    })
+    with open(configFileLocation, "w") as configFile:
+        json.dump(configData, configFile, indent=4)
+    await ctx.send("Role added.")
 
 
-        ## List all roles in the config file
-        if "!listroles" in message.content:
-            with open(configFileLocation, "r") as configFile:
-                configData = json.load(configFile)
-                configuredRoles = configData["roles"]
-            configuredRoles = [role["role"] for role in configuredRoles]
-            configuredRoles = "\n".join(configuredRoles)
-            await message.channel.send(f"Configured roles are:\n{configuredRoles}")
-            return
+## create bot command !delrole with arguments role and remove from roles array in config/config.json
+@bot.command(name="delrole", help="Delete a role from the Bot.")
+async def delrole(ctx, role_name):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## check if role_name is a valid string
+    if not isinstance(role_name, str):
+        await ctx.send("Role name must be a string.")
+        return
+    ## check if role_name is not in use
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    for role in roles:
+        if role["role_name"] == role_name:
+            break
+    else:
+        await ctx.send("Role name is not in use.")
+        return
+    ## remove from roles array in config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        roles = configData["roles"]
+    for role in roles:
+        if role["role_name"] == role_name:
+            roles.remove(role)
+            break
+    with open(configFileLocation, "w") as configFile:
+        json.dump(configData, configFile, indent=4)
+    await ctx.send("Role removed.")
 
-        ## Reload reaction message
-        if "!reload" in message.content:
-            if message.author == client.user:
+
+## create bot command !restart to restart the bot
+@bot.command(name="restart", help="Restart the Bot.")
+async def restart(ctx):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## restart the bot
+    await ctx.send("Restarting...")
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+
+## create bot command !shutdown to shutdown the bot
+## only the role "Submit to Me" can use this command
+@bot.command(name="shutdown", help="Shutdown the Bot.")
+async def shutdown(ctx):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## check if the message is from the role "Submit to Me"
+    if "Submit to Me" not in [role.name for role in message.author.roles]:
+        return
+    ## shutdown the bot
+    await ctx.send("Shutting down...")
+    await bot.logout()
+
+
+## create bot command !role to list roles of the author
+@bot.command(name="roles", help="List roles of the author.")
+async def role(ctx):
+    ## check if the message is from the bot
+    if message.author == bot.user:
+        return
+    ## check if the message is from the bot channel
+    if message.channel.id != int(BOT_CHANNEL_ID):
+        return
+    ## list roles of the author
+    for role in message.author.roles:
+        await ctx.send(f"Role: {role.name}")
+
+
+## create bot command !reload to reload the reaction roles
+@bot.command(name="reload", help="Reload the reaction roles.")
+async def reload(ctx):
+    ## reload the reaction roles
+    await ctx.send("Reloading...")
+    await role_system()
+
+
+## create bot command !listcommands to list all commands
+@bot.command(name="listcommands", help="List all commands.")
+async def help(ctx):
+    ## for loop to list all commands and append to helpMessage
+    helpMessage = ""
+    for command in bot.commands:
+        helpMessage += f"Command: {command.name}\n"
+    ## send helpMessage as a message to the author
+    await ctx.send(helpMessage)
+
+
+## create command to build message array from
+
+## create bot command !testnotify with arguments nameNotify and search for the name in the config/config.json
+@bot.command(name="testnotify", help="Test the notification system.")
+async def testnotify(ctx, nameNotify):
+    ## load notification data from config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notifications = configData["notifications"]
+        ## if notification name is found, send message containing description
+        for notification in notifications:
+            if notification["name"] == nameNotify:
+                await ctx.send(f"Notification: {notification['description']}")
                 return
-            await message.channel.send("Reloading reaction message...")
-            channel = await client.fetch_channel(CHANNEL_ID)
-            roles = await client.guilds[0].fetch_roles()
-            map_role_ID(roles)
-            map_emoji_ids()
+    ## if notification name is not found, send message containing error
+    await ctx.send(notification['name'] + " notification not found.")
 
-            if role_message_exists():
-                roleMessage = get_message_id()
-                if roleMessage != 0:
-                    try :
-                        roleMessage = await channel.fetch_message(roleMessage)
-                    except discord.errors.NotFound:
-                        roleMessage = await channel.send(content=build_message())
-                        store_message_id(roleMessage.id)
-                await roleMessage.edit(content=build_message())
-            else:
+
+## create function to send messages at specific time intervals to notification channel in config/config.json
+async def notify_system():
+    ## read config/config.json
+    with open(configFileLocation, "r") as configFile:
+        configData = json.load(configFile)
+        notificationChannel = configData["notification_channel"]
+        notifications = configData["notifications"]
+    ## set nextMinute to how many seconds till next minute
+    nextMinute = 60 - datetime.datetime.now().second
+    ## wait for next minute
+    await asyncio.sleep(nextMinute)
+    ## loop forever
+    while True:
+        ## loop through notifications
+        for notification in notifications:
+            ## get current time
+            now = datetime.datetime.now()
+            ## check if current MM matches notification MM
+            if now.minute == notification["minute"]:
+                ## send notification to notification channel
+                await bot.get_channel(int(notificationChannel)).send(notification["message"])
+        await asyncio.sleep(60)
+
+## create role_system function to load roles from config/config.json and add reactions to the bot message
+async def role_system():
+    global roles, roleMessage
+    channel = await bot.fetch_channel(CHANNEL_ID)
+    roles = await bot.guilds[0].fetch_roles()
+    map_role_ID(roles)
+    map_emoji_ids()
+
+    if role_message_exists():
+        roleMessage = get_message_id()
+        if roleMessage != 0:
+            try:
+                roleMessage = await channel.fetch_message(roleMessage)
+            except discord.errors.NotFound:
                 roleMessage = await channel.send(content=build_message())
                 store_message_id(roleMessage.id)
-            # Remove all reactions from the bot on the message.
-            for react in roleMessage.reactions:
-                await react.remove(client.user)
-        
-            # Add a reaction from the bot for each in the config
-            default_reacts = get_all_reacts()
-            for react in default_reacts:
-                await roleMessage.add_reaction(emoji.emojize(react, language='alias'))
+    else:
+        roleMessage = await channel.send(content=build_message())
+        store_message_id(roleMessage.id)
+
+        for react in roleMessage.reactions:
+            await react.remove(bot.user)
+
+        default_reacts = get_all_reacts()
+        for react in default_reacts:
+            await roleMessage.add_reaction(emoji.emojize(react, language='alias'))
+
 
 def interpret_emoji(payload):
     """
@@ -172,9 +423,9 @@ def interpret_emoji(payload):
 
 
 def eligible_for_action(payload):
-    user = client.get_user(payload.user_id)
+    user = bot.get_user(payload.user_id)
     # If the user reacting is the bot, return
-    if user == client.user:
+    if user == bot.user:
         return False
     # If the reaction is not on the correct message for manging roles, return.
     # Defined in config/config.json
@@ -193,7 +444,7 @@ def map_emoji_ids():
 
     for item in configuredRoles:
         if item["react_id"] == 0:
-            for custom_emoji in client.emojis:
+            for custom_emoji in bot.emojis:
                 if custom_emoji.name in item["react"]:
                     item["react_id"] = custom_emoji.id
         else:
@@ -286,7 +537,7 @@ def build_message():
 
     for item in configuredRoles:
         react = item["react"]
-        for custom_emoji in client.emojis:
+        for custom_emoji in bot.emojis:
             if custom_emoji.name in react:
                 react = f"<{item['react']}{item['react_id']}>"
         roleDescription = item["description"]
@@ -313,7 +564,7 @@ def get_all_reacts():
 
     return reacts
 
-@client.event
+@bot.event
 async def on_raw_reaction_add(payload):
     if eligible_for_action(payload):
         role = interpret_emoji(payload)
@@ -324,51 +575,24 @@ async def on_raw_reaction_add(payload):
             f"The user {payload.member} was added to the role {role.name}")
 
 
-@client.event
+@bot.event
 async def on_raw_reaction_remove(payload):
     if eligible_for_action(payload):
         role = interpret_emoji(payload)
         if role == None:
             return
-        guild = client.get_guild(payload.guild_id)
+        guild = bot.get_guild(payload.guild_id)
         member = await guild.fetch_member(payload.user_id)
         await member.remove_roles(role)
         print(
             f"The user {member.name} was removed from the role {role.name}")
 
 
-@client.event
+@bot.event
 async def on_ready():
     global roles, roleMessage
     # Set bot status in the server
-    await client.change_presence(activity=botActivity)
-    channel = await client.fetch_channel(CHANNEL_ID)
-    roles = await client.guilds[0].fetch_roles()
-    map_role_ID(roles)
-    map_emoji_ids()
+    await bot.change_presence(activity=botActivity)
+    await role_system()
 
-    if role_message_exists():
-        roleMessage = get_message_id()
-        if roleMessage != 0:
-            try :
-                roleMessage = await channel.fetch_message(roleMessage)
-            except discord.errors.NotFound:
-                roleMessage = await channel.send(content=build_message())
-                store_message_id(roleMessage.id)
-        await roleMessage.edit(content=build_message())
-    else:
-        roleMessage = await channel.send(content=build_message())
-        store_message_id(roleMessage.id)
-
-    # Remove all reactions from the bot on the message.
-    for react in roleMessage.reactions:
-        await react.remove(client.user)
-
-    # Add a reaction from the bot for each in the config
-    default_reacts = get_all_reacts()
-    for react in default_reacts:
-        await roleMessage.add_reaction(emoji.emojize(react, language='alias'))
-
-
-
-client.run(DISCORD_TOKEN)
+bot.run(DISCORD_TOKEN)

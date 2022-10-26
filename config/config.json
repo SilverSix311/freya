@@ -50,5 +50,13 @@
             "role_id": 1032821944699064362
         }
     ],
-    "role_message_id": 1032824537517150229
+    "role_message_id": 1034229141106589736,
+    "notifications": [
+        {
+            "name": "water_buddy",
+            "channel": 0,
+            "cron": 15,
+            "message": "@water_buddies Drink Bitches!!"
+        }
+    ]
 }
