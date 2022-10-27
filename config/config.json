@@ -48,15 +48,23 @@
             "role": "valheim",
             "description": "Valheim",
             "role_id": 1032821944699064362
+        },
+        {
+            "react": ":bottle:",
+            "react_id": 1034666915987198002,
+            "role": "water_buddies",
+            "description": "15 min reminder to drink water",
+            "role_id": 1034626366181748866
         }
     ],
     "role_message_id": 1034229141106589736,
     "notifications": [
         {
             "name": "water_buddy",
-            "channel": 0,
-            "cron": 15,
-            "message": "@water_buddies Drink Bitches!!"
+            "channel_id": 1034881969315655740,
+            "time": 15,
+            "mention": "water_buddies",
+            "message": "Drink Bitches!!"
         }
     ]
 }
