@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.8-slim-buster
+FROM ubuntu:20.04
 
 WORKDIR /
 
-# Install git
-RUN apt-get update && apt-get install -y git
+# Install git python3 and pip
+RUN apt-get update && apt-get install -y git python3 python3-pip
 
 # clone the repo and install the requirements
 
